@@ -9,7 +9,9 @@ class RayaApplication(RayaApplicationBase):
         self.skill_dock:RayaSkillHandler = self.register_skill(SkillBelinsonApproach)
         self.log.warn('Executing setup')
         await self.skill_dock.execute_setup(
-            setup_args={}
+            setup_args={
+                'map_name' : 'office__tests'
+            }
         )
 
     async def loop(self):
