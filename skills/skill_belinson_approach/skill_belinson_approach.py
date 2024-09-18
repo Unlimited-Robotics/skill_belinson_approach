@@ -18,7 +18,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
     ### Arguments ###
     DEFAULT_SETUP_ARGS = {'fsm_log_transitions':True}
-    REQUIRED_SETUP_ARGS = {}
+    REQUIRED_SETUP_ARGS = {'map_name'}
     DEFAULT_EXECUTE_ARGS = {'distance_to_goal' : 1.3}
     REQUIRED_EXECUTE_ARGS = {'face_angle'}
 
@@ -51,8 +51,15 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.log.info('Enabling face detection model...')
         self.face_detector = await self.cv.enable_model(**FACE_DETECTOR_PARAMS)
         self.log.info('Enabling feet detection model...')
-        self.feet_detector = await self.cv.enable_model(**FEET_DETECTOR_PARAMS)             
+        self.feet_detector = await self.cv.enable_model(**FEET_DETECTOR_PARAMS)   
 
+        # Localize
+        self.log.info(f"Localizing in map - {self.setup_args['map_name']}")
+        await self.nav.set_map(
+                        map_name= self.setup_args['map_name'],
+                        wait_localization = True,
+                        wait = True
+                        )
 
     async def finish(self):
         pass
