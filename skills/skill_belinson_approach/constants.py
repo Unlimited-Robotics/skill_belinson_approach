@@ -1,5 +1,5 @@
-APPROACH_FACE_CAMERA = 'nav_bottom',
-APPROACH_FEET_CAMERA = 'nav_top',
+APPROACH_FACE_CAMERA = 'nav_bottom'
+APPROACH_FEET_CAMERA = 'nav_top'
 
 FACE_DETECTOR_PARAMS = {
     'name' : 'cnn_face',

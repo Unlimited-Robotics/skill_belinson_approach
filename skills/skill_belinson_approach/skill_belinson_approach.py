@@ -17,11 +17,10 @@ from collections import deque
 class SkillBelinsonApproach(RayaFSMSkill):
 
     ### Arguments ###
-    DEFAULT_SETUP_ARGS = {}
+    DEFAULT_SETUP_ARGS = {'fsm_log_transitions':True}
     REQUIRED_SETUP_ARGS = {}
     DEFAULT_EXECUTE_ARGS = {'distance_to_goal' : 1.3}
-    REQUIRED_EXECUTE_ARGS = {'face_angle',
-                             }
+    REQUIRED_EXECUTE_ARGS = {'face_angle'}
 
     ### Skill ###
     STATES = [
@@ -33,7 +32,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         'END',
     ]
 
-    INITIAL_STATE = 'SETUP_ACTIONS'
+    INITIAL_STATE = 'DETECT_FACE'
 
     END_STATES = [
         'END'
@@ -123,6 +122,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
             except Exception as e:
                 self.face_approach_success = False
+        else:
+            self.face_approach_success = False
 
     async def enter_DETECT_FEET(self):
         # Create a queue
@@ -199,7 +200,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         while not self.obstacle_detected:
             try:
                 await self.motion.set_velocity(
-                    x_velocity = 0.03,
+                    x_velocity = 0.015,
                     y_velocity = 0.0,
                     angular_velocity = 0.0,
                     duration = 0.75,
@@ -207,50 +208,55 @@ class SkillBelinsonApproach(RayaFSMSkill):
                     wait = False
                 )
 
-                # Stop moving if you're too close
-                if self.distance_to_feet < FEET_DIST_BEFORE_STOP:
-                    break
-
             except Exception as e:
                 self.log.warn(f'linear movement failed, error: {e}')
 
 
 
     # ============================= Transitions ============================= #
-    async def DETECT_FACE(self):
+    async def transition_from_DETECT_FACE(self):
         if self.face_detections:
             self.set_state('APPROACH_FACE')
         else:
-            await self.send_feedback({'skill_success' : False})
+            await self.send_feedback({'skill_success' : False,
+                                      'status_msg' : 'No faces detected'
+                                      }
+                                    )
             self.set_state('END')
 
 
-    async def APPROACH_FACE(self):
+    async def transition_from_APPROACH_FACE(self):
         if self.face_approach_success:
             self.set_state('DETECT_FEET')
         else:
-            await self.send_feedback({'skill_success' : False})
+            await self.send_feedback({'skill_success' : False,
+                                      'status_msg' : "Couldn't approach face"
+                                      }
+                                    )
             self.set_state('END')
 
 
-    async def DETECT_FEET(self):
+    async def transition_from_DETECT_FEET(self):
         if self.feet_detected:
             self.set_state('APPROACH_FEET_CV')
         else:
             self.set_state('APPROACH_FEET_LIDAR')
 
 
-    async def APPROACH_FEET_CV(self):
+    async def transition_from_APPROACH_FEET_CV(self):
         if self.feet_approach_success:
             await self.send_feedback({'skill_success' : True})
             await self.cv.disable_all_models()
             self.set_state('END')
         else:
-            await self.send_feedback({'skill_success' : False})
+            await self.send_feedback({'skill_success' : False,
+                                      'status_msg' : "Couldn't approach feet"
+                                      }
+                                    )
             self.set_state('END')
 
 
-    async def APPROACH_FEET_LIDAR(self):
+    async def transition_from_APPROACH_FEET_LIDAR(self):
         await self.send_feedback({'skill_success' : True})
         await self.cv.disable_all_models()
         self.set_state('END')
@@ -278,11 +284,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
         await self.cameras.enable_camera(APPROACH_FEET_CAMERA)
 
 
-    def calculate_distance_to_image_center(self,
-                                           detection: dict,
-                                           image: np.array,
-                                           only_y: bool = False
-                                           ):
+    def calculate_distance_img_center(self,
+                                    detection: dict,
+                                    image: np.array,
+                                    only_y: bool = False
+                                    ):
         
         '''
         Calculate the distance of a detection from the image center
@@ -404,7 +410,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
     def callback_all_faces(self, detections, image):
         if detections:
             self.face_detections = sorted(detections,
-                key = lambda x: (self.calculate_distance_to_image_center(
+                key = lambda x: (self.calculate_distance_img_center(
                                     x, image,
                                     only_y = True),
                                     -x['confidence'])
@@ -412,42 +418,12 @@ class SkillBelinsonApproach(RayaFSMSkill):
             self.face_detections = [self.face_detections[0]]
 
     def cb_nav_feedback(self, error, error_msg, distance_to_goal, speed):
-        '''Create an async navigation callback'''
-        try:
-            self.create_task(name='nav feedback',
-                                afunc=self.async_cb_nav_feedback,
-                                error=error,
-                                error_msg=error_msg,
-                                distance_to_goal=distance_to_goal,
-                                speed=speed
-                                )
-        except Exception as e:
-            self.log.warn(f'Got error in cb_nav_feedback - {e}')
-        
-
-    async def async_cb_nav_feedback(self,
-                                    error,
-                                    error_msg,
-                                    distance_to_goal,
-                                    speed
-                                    ):
-        self.log.info(f'Action: {error_msg} | ID: {error}')
+        pass
 
 
     def cb_nav_finish(self, error, error_msg):
-        '''Create an async callback for navigation finish'''
-        try:
-            self.create_task(name='nav finish',afunc=self.async_cb_nav_finish,
-                        error=error,
-                        error_msg=error_msg,
-                        )
-        except Exception as e:
-            print(f'Error in cb_nav_finish {e}')
-
-
-    async def async_cb_nav_finish(self, error, error_msg):
-        '''Async callback for navigation finish'''
         pass
+
 
     def cb_stinky_feet(self, predictions, image):
         '''Callback used to obtain predictions'''
@@ -461,7 +437,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
             sorted_detections = sorted(
                                 predictions,
                                 key = lambda x: \
-                                    (self.calculate_distance_to_image_center(
+                                    (self.calculate_distance_img_center(
                                                     x, image, only_y = True),
                                         x['distance'],
                                         -x['confidence']
@@ -487,6 +463,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 self.feet_detected = True
             else:
                 self.feet_detected = False
+
+        else:
+            self.feet_detected = False
 
     def callback_obstacle(self):
         self.obstacle_detected = True

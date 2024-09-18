@@ -1,1 +1,1 @@
-from .belinson_approach import SkillBelinsonApproach
+from .skill_belinson_approach import SkillBelinsonApproach
