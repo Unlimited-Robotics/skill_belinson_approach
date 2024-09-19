@@ -13,6 +13,17 @@ FEET_DETECTOR_PARAMS = {
     'model_params' : {'depth' : True}
 }
 
+MSGS_DICT = {
+    'DETECT_FACE' : {'success' : 1,
+                     'failure' : 'No faces detected'},
+    'APPROACH_FACE' : {'success' : 2,
+                       'failure' : 'Could not approach face'},
+    'DETECT_FEET' : {'success' : 3,
+                     'failure' : 'Could not detect feet'},
+    'APPROACH_FEET_CV' : {'success' : 4,
+                          'failure' : 'Could not approach feet'}
+}
+
 FEET_DETECTION_THRESHOLD = 0.6
 FEET_SIZE_THRESHOLD = 0.04
 DISTANCE_CONST = 0.53

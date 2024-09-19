@@ -223,28 +223,39 @@ class SkillBelinsonApproach(RayaFSMSkill):
     # ============================= Transitions ============================= #
     async def transition_from_DETECT_FACE(self):
         if self.face_detections:
+            await self.send_feedback(
+                        {'skill_success' : None,
+                        'status_msg' : MSGS_DICT['DETECT_FACE']['success']})
             self.set_state('APPROACH_FACE')
         else:
-            await self.send_feedback({'skill_success' : False,
-                                      'status_msg' : 'No faces detected'
-                                      }
-                                    )
+            await self.send_feedback(
+                            {'skill_success' : False,
+                            'status_msg' : MSGS_DICT['DETECT_FACE']['failure']
+                            }
+                        )
             self.set_state('END')
 
 
     async def transition_from_APPROACH_FACE(self):
         if self.face_approach_success:
+            await self.send_feedback(
+                        {'skill_success' : None,
+                        'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
             self.set_state('DETECT_FEET')
         else:
-            await self.send_feedback({'skill_success' : False,
-                                      'status_msg' : "Couldn't approach face"
-                                      }
-                                    )
+            await self.send_feedback(
+                            {'skill_success' : False,
+                            'status_msg' : MSGS_DICT['APPROACH_FACE']['failure']
+                            }
+                        )
             self.set_state('END')
 
 
     async def transition_from_DETECT_FEET(self):
         if self.feet_detected:
+            await self.send_feedback(
+                        {'skill_success' : None,
+                        'status_msg' : MSGS_DICT['DETECT_FEET']['success']})
             self.set_state('APPROACH_FEET_CV')
         else:
             self.set_state('APPROACH_FEET_LIDAR')
@@ -252,19 +263,25 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
     async def transition_from_APPROACH_FEET_CV(self):
         if self.feet_approach_success:
-            await self.send_feedback({'skill_success' : True})
+            await self.send_feedback(
+                    {'skill_success' : True,
+                    'status_msg' : MSGS_DICT['APPROACH_FEET_CV']['success']
+                    }
+                )
             await self.cv.disable_all_models()
             self.set_state('END')
         else:
-            await self.send_feedback({'skill_success' : False,
-                                      'status_msg' : "Couldn't approach feet"
-                                      }
-                                    )
+            await self.send_feedback(
+                        {'skill_success' : False,
+                        'status_msg' : MSGS_DICT['APPROACH_FEET_CV']['failure']
+                        }
+                    )
             self.set_state('END')
 
 
     async def transition_from_APPROACH_FEET_LIDAR(self):
-        await self.send_feedback({'skill_success' : True})
+        await self.send_feedback({'skill_success' : True,
+                                  'status_msg' : None})
         await self.cv.disable_all_models()
         self.set_state('END')
 
