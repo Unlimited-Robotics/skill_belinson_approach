@@ -25,6 +25,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
     ### Skill ###
     STATES = [
         'DETECT_FACE',
+        'SCAN_FOR_DETECTIONS',
         'APPROACH_FACE',
         'DETECT_FEET',
         'APPROACH_FEET_CV',
@@ -46,6 +47,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
         # Init skill controllers
         self.log.info('Enabling skill controllers...')
         await self.enable_skill_controllers()
+
+        # Setup variables
+        self.setup_variables()
 
         # Init detection models
         self.log.info('Enabling face detection model...')
@@ -76,6 +80,19 @@ class SkillBelinsonApproach(RayaFSMSkill):
         )
         self.face_detections = {}
         await self.sleep(3.0)
+
+
+    async def enter_SCAN_FOR_DETECTIONS(self):
+        # Take predefined rotation params
+        rotation_params = SCAN_FOR_FACES_ROTATION_PARAMS.copy()
+
+        # Start scanning left and right to find faces
+        for i in range(2):
+            if self.face_detections:
+                break
+            sign = 1 if (i+1)%i == 0 else 1
+            rotation_params['angular_speed'] *= sign*(i+1)
+            await self.motion.rotate(**rotation_params)
 
 
     async def enter_APPROACH_FACE(self):
@@ -172,6 +189,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
             unweighted_distance = np.mean(self.feet_queue)
             weighted_distance = self.check_final_queue(self.feet_queue)
 
+            lidar_data = await self.get_lidar_data(**LIDAR_SCAN_PARAMS)
+            print('='*50)
+            print(f'lidar data: {lidar_data}')
+            print('='*50)
+
             if type(weighted_distance) is not int:
                 weighted_distance = unweighted_distance
 
@@ -227,6 +249,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         {'skill_success' : None,
                         'status_msg' : MSGS_DICT['DETECT_FACE']['success']})
             self.set_state('APPROACH_FACE')
+
+        elif self.face_detection_attempts < MAX_DETECTION_ATTEMPTS:
+            self.face_detection_attempts += 1
+            self.set_state('SCAN_FOR_DETECTIONS')
+
         else:
             await self.send_feedback(
                             {'skill_success' : False,
@@ -234,6 +261,19 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             }
                         )
             self.set_state('END')
+
+
+
+    async def transition_from_SCAN_FOR_DETECTIONS(self):
+        if self.face_detections:
+            await self.send_feedback(
+                        {'skill_success' : None,
+                        'status_msg' : MSGS_DICT['DETECT_FACE']['success']})
+            self.set_state('APPROACH_FACE')
+        
+        else:
+            self.set_state('DETECT_FACE')
+
 
 
     async def transition_from_APPROACH_FACE(self):
@@ -307,6 +347,27 @@ class SkillBelinsonApproach(RayaFSMSkill):
         await self.cameras.enable_camera(APPROACH_FACE_CAMERA)
         await self.cameras.enable_camera(APPROACH_FEET_CAMERA)
 
+
+    def setup_variables(self):
+        self.face_detection_attempts = 0
+        self.feet_detection_attempts = 0
+
+
+    async def get_lidar_data(self, lower_angle, upper_angle):
+        # Get laser info and raw data
+        laser_info = self.lidar.get_laser_info()
+        raw_data = self.lidar.get_raw_data()
+
+        # Filter data in the requested angles
+        min_index = int(math.ceil( 
+            (lower_angle - laser_info['angle_min']) / laser_info['angle_increment'] 
+        ))
+        max_index = int(math.floor(
+            (upper_angle - laser_info['angle_min']) / laser_info['angle_increment'] 
+        ))
+        
+        return raw_data[min_index:max_index] 
+            
 
     def calculate_distance_img_center(self,
                                     detection: dict,
@@ -440,6 +501,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                     -x['confidence'])
                 )
             self.face_detections = [self.face_detections[0]]
+
 
     def cb_nav_feedback(self, error, error_msg, distance_to_goal, speed):
         pass
