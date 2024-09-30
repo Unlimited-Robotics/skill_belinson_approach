@@ -190,12 +190,17 @@ class SkillBelinsonApproach(RayaFSMSkill):
             weighted_distance = self.check_final_queue(self.feet_queue)
 
             lidar_data = await self.get_lidar_data(**LIDAR_SCAN_PARAMS)
+            
             print('='*50)
             print(f'lidar data: {lidar_data}')
+            print(f'min lidar data distance: {min(lidar_data)}')
             print('='*50)
 
             if type(weighted_distance) is not int:
                 weighted_distance = unweighted_distance
+
+            if weighted_distance > min(lidar_data):
+                weighted_distance = min(lidar_data)
 
             self.log.warn(f'Moving final distance - {weighted_distance}')
             await self.motion.move_linear(
