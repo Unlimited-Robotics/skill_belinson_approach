@@ -290,7 +290,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         if self.face_approach_success and self.setup_args['only_face']:
             await self.send_feedback(
                         {'skill_success' : True,
-                        'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
+                        'status_msg' : MSGS_DICT['ONLY_FACE']['success']})
             self.set_state('END')
 
         elif self.face_approach_success:
