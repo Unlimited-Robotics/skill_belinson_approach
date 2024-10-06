@@ -17,7 +17,8 @@ from collections import deque
 class SkillBelinsonApproach(RayaFSMSkill):
 
     ### Arguments ###
-    DEFAULT_SETUP_ARGS = {'fsm_log_transitions':True}
+    DEFAULT_SETUP_ARGS = {'fsm_log_transitions':True,
+                          'only_face' : False}
     REQUIRED_SETUP_ARGS = {'map_name'}
     DEFAULT_EXECUTE_ARGS = {'distance_to_goal' : 1.3}
     REQUIRED_EXECUTE_ARGS = {'face_angle'}
@@ -286,7 +287,13 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
 
     async def transition_from_APPROACH_FACE(self):
-        if self.face_approach_success:
+        if self.face_approach_success and self.execute_args['only_face']:
+            await self.send_feedback(
+                        {'skill_success' : True,
+                        'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
+            self.set_state('END')
+
+        elif self.face_approach_success:
             await self.send_feedback(
                         {'skill_success' : None,
                         'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
