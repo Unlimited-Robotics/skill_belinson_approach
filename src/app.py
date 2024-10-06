@@ -10,7 +10,7 @@ class RayaApplication(RayaApplicationBase):
         self.log.warn('Executing setup')
         await self.skill_dock.execute_setup(
             setup_args={
-                'map_name' : 'office__tests'
+                'map_name' : 'testing__map'
             }
         )
 

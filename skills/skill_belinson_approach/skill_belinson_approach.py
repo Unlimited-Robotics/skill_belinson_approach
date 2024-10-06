@@ -44,6 +44,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
     ### Application ###
     async def setup(self):
+
         # Init skill controllers
         self.log.info('Enabling skill controllers...')
         await self.enable_skill_controllers()
@@ -191,16 +192,19 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
             lidar_data = await self.get_lidar_data(**LIDAR_SCAN_PARAMS)
             
-            print('='*50)
-            print(f'lidar data: {lidar_data}')
-            print(f'min lidar data distance: {min(lidar_data)}')
-            print('='*50)
-
             if type(weighted_distance) is not int:
                 weighted_distance = unweighted_distance
 
-            if weighted_distance > min(lidar_data):
-                weighted_distance = min(lidar_data)
+            distance_coeff = min(lidar_data) - DISTANCE_CONST
+
+            self.log.debug(f'distance offset: {(distance_coeff - weighted_distance)/distance_coeff}')
+
+            if abs((distance_coeff - weighted_distance)/distance_coeff) > MAX_DISTANCE_OFFSET_PERCENTAGE:
+               
+                self.log.warn(f'Feet detection was pretty far..')
+                self.log.warn('Using lidar based distance for safety')
+                self.feet_bad_detection = True
+                return
 
             self.log.warn(f'Moving final distance - {weighted_distance}')
             await self.motion.move_linear(
@@ -227,7 +231,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 callback = self.callback_obstacle,
                 lower_angle = -10,
                 upper_angle = 10,
-                upper_distance = 0.56, 
+                upper_distance = DISTANCE_CONST, 
                 ang_unit=ANGLE_UNIT.DEGREES,
             )
         
@@ -307,7 +311,10 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
 
     async def transition_from_APPROACH_FEET_CV(self):
-        if self.feet_approach_success:
+        if self.feet_bad_detection:
+            self.set_state('APPROACH_FEET_LIDAR')
+
+        elif self.feet_approach_success:
             await self.send_feedback(
                     {'skill_success' : True,
                     'status_msg' : MSGS_DICT['APPROACH_FEET_CV']['success']
@@ -331,6 +338,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.set_state('END')
 
     # =============================== Helpers =============================== #
+
     async def enable_skill_controllers(self):
         # Enable controllers
         self.ui: UIController = await self.get_controller('ui')
@@ -342,7 +350,6 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.log.info('Motion controller - Enabled')
         self.cameras: CamerasController = await self.get_controller('cameras')
         self.log.info('Cameras controller - Enabled')
-        self.log.info('sound controller - Enabled')
         self.cv: CVController = await self.get_controller('cv')
         self.log.info('CV controller - Enabled')
         self.lidar = await self.get_controller('lidar')
@@ -356,6 +363,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
     def setup_variables(self):
         self.face_detection_attempts = 0
         self.feet_detection_attempts = 0
+        self.feet_detected = False
+        self.feet_bad_detection = False
 
 
     async def get_lidar_data(self, lower_angle, upper_angle):
