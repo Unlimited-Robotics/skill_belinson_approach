@@ -38,8 +38,10 @@ MSGS_DICT = {
     'DETECT_FEET' : {'success' : 3,
                      'failure' : 'Could not detect feet'},
     'APPROACH_FEET_CV' : {'success' : 4,
-                          'failure' : 'Could not approach feet'}
-}
+                          'failure' : 'Could not approach feet'},
+    'ONLY_FACE' : {'success' : 5,
+                   'failure' : 'Error'}
+ }
 
 
 # Feet detection parameters
