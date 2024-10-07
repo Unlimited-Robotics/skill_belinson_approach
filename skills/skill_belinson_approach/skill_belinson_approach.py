@@ -173,7 +173,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                     x_velocity = 0.03,
                     y_velocity = 0.0,
                     angular_velocity = 0.0,
-                    duration = 0.75,
+                    duration = 0.5,
                     enable_obstacles = False,
                     wait = False
                 )
@@ -184,6 +184,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
             except Exception as e:
                 self.log.warn(f'linear movement failed, error: {e}')
+                await self.sleep(0.1)
             
         # When the feet are no longer detected, compute the final distance
         # to move forwards
@@ -249,7 +250,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
             except Exception as e:
                 self.log.warn(f'linear movement failed, error: {e}')
-
+                await self.sleep(0.1)
 
 
     # ============================= Transitions ============================= #
