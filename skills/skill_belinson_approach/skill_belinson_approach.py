@@ -582,6 +582,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 callback_feedback = callback_feedback,
                 callback_finish = callback_finish
             )
+            await self.nav.go_to_angle(angle_target = angle,
+                                       angular_velocity = 10.0,
+                                       ang_unit = ang_unit,
+                                       wait = True
+                                       )
         
     # =============================== Callbacks =============================== #
 
