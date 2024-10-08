@@ -173,9 +173,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
                     x_velocity = 0.03,
                     y_velocity = 0.0,
                     angular_velocity = 0.0,
-                    duration = 0.5,
+                    duration = 10.0,
                     enable_obstacles = False,
-                    wait = False
+                    wait = True,
+                    callback_feedback_async = self.async_cb_feet,
+                    callback_finish_async = self.async_cbf_feet
                 )
 
                 # Stop moving if you're too close
@@ -185,7 +187,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
             except Exception as e:
                 self.log.warn(f'linear movement failed, error: {e}')
                 await self.sleep(0.1)
-            
+        
+
         # When the feet are no longer detected, compute the final distance
         # to move forwards
         try:
@@ -243,15 +246,16 @@ class SkillBelinsonApproach(RayaFSMSkill):
                     x_velocity = 0.015,
                     y_velocity = 0.0,
                     angular_velocity = 0.0,
-                    duration = 0.75,
+                    duration = 10.0,
                     enable_obstacles = False,
-                    wait = False
+                    wait = True,
+                    callback_feedback_async = self.async_cb_lidar,
+                    callback_finish_async = self.async_cbf_lidar
                 )
 
             except Exception as e:
                 self.log.warn(f'linear movement failed, error: {e}')
                 await self.sleep(0.1)
-
 
     # ============================= Transitions ============================= #
     async def transition_from_DETECT_FACE(self):
@@ -577,3 +581,21 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
     def callback_obstacle(self):
         self.obstacle_detected = True
+
+
+    async def async_cb_feet(self, arg1, arg2, arg3, arg4):
+        if not self.feet_detected:
+            await self.motion.cancel_motion()
+
+
+    async def async_cbf_feet(self, arg1, arg2, arg3, arg4):
+        pass
+
+
+    async def async_cb_lidar(self, arg1, arg2, arg3, arg4):
+        if self.obstacle_detected:
+            await self.motion.cancel_motion()
+
+
+    async def async_cbf_lidar(self, arg1, arg2, arg3, arg4):
+        pass
