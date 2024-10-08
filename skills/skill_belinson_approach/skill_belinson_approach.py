@@ -31,6 +31,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         'DETECT_FEET',
         'APPROACH_FEET_CV',
         'APPROACH_FEET_LIDAR',
+        'IDLE',
         'END',
     ]
 
