@@ -591,7 +591,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         break
 
                     new_x = x + xi*sign*dx
-                    new_y = x+ yi*sign*dy
+                    new_y = y + yi*sign*dy
                     
                     path_available = await self.check_path_available(
                                         x = new_x,
