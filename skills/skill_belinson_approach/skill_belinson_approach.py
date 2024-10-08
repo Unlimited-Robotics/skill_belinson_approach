@@ -2,6 +2,7 @@
 from raya.skills import RayaSkillHandler, RayaFSMSkill
 from raya.controllers import *
 from raya.controllers.navigation_controller import POSITION_UNIT, ANGLE_UNIT
+from raya.exceptions import *
 
 # Filesystem Imports
 from .constants import *
@@ -558,7 +559,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             callback_feedback,
                             callback_finish,
                             close_to_position = False,
-                            max_radius = 0.3
+                            max_radius = 0.8
                             ):
         
         if not close_to_position:
@@ -574,20 +575,49 @@ class SkillBelinsonApproach(RayaFSMSkill):
             )
         
         else:
-            await self.nav.navigate_close_to_position(
-                x = x,
-                y = y,
-                max_radius = max_radius,
+
+            self.app.log.debug('/'*50)
+            self.app.log.debug(f'Requested position: {x}, {y}, {angle}')
+
+            path_available = False
+            dx = 1 if pos_unit == POSITION_UNIT.PIXELS else 0.05
+            dy = 1 if pos_unit == POSITION_UNIT.PIXELS else 0.05
+            sign = 1
+
+            for xi in range(5):
+                for yi in range(5):
+
+                    if path_available:
+                        break
+
+                    new_x = x + xi*sign*dx
+                    new_y = x+ yi*sign*dy
+                    
+                    path_available = await self.check_path_available(
+                                        x = new_x,
+                                        y = new_y,
+                                        angle = angle,
+                                        pos_unit = pos_unit,
+                                        ang_unit = ang_unit,
+                                        callback_feedback = callback_feedback,
+                                        callback_finish = callback_finish
+                                        )
+                    sign *= -1
+
+            if path_available:
+                await self.nav.navigate_to_position(
+                x = new_x,
+                y = new_y,
+                angle = angle,
                 pos_unit = pos_unit,
+                ang_unit = ang_unit,
                 wait = wait,
                 callback_feedback = callback_feedback,
                 callback_finish = callback_finish
             )
-            await self.nav.go_to_angle(angle_target = angle,
-                                       angular_velocity = 10.0,
-                                       ang_unit = ang_unit,
-                                       wait = True
-                                       )
+                
+            else:
+                raise RayaNoPathToGoal
         
     # =============================== Callbacks =============================== #
 
