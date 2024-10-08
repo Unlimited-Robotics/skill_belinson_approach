@@ -44,6 +44,8 @@ MSGS_DICT = {
                    'failure' : 'Error'}
  }
 
+# Navigation params
+GRID_X, GRID_Y = 5,5
 
 # Feet detection parameters
 FEET_DETECTION_THRESHOLD = 0.6

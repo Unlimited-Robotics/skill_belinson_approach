@@ -584,8 +584,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
             dy = 1 if pos_unit == POSITION_UNIT.PIXELS else 0.05
             sign = 1
 
-            for xi in range(5):
-                for yi in range(5):
+            for xi in range(GRID_X):
+                for yi in range(GRID_Y):
 
                     if path_available:
                         break
