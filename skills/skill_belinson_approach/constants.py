@@ -45,7 +45,7 @@ MSGS_DICT = {
  }
 
 # Navigation params
-GRID_X, GRID_Y = 5,5
+GRID = [[-1,1], [0,1], [1,1], [-1,0], [1,0], [-1,-1], [0,-1], [1,-1]]
 
 # Feet detection parameters
 FEET_DETECTION_THRESHOLD = 0.6

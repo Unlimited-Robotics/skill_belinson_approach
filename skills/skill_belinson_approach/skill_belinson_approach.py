@@ -505,32 +505,6 @@ class SkillBelinsonApproach(RayaFSMSkill):
         return projected_point     
 
 
-    async def check_path_available(self,
-                                   x,
-                                   y,
-                                   angle,
-                                   pos_unit = POSITION_UNIT.METERS,
-                                   ang_unit = ANGLE_UNIT.DEGREES
-                                   ):
-        try:
-            await self.nav.navigate_to_position( 
-                x = float(x), 
-                y = float(y), 
-                angle = float(angle), 
-                pos_unit = pos_unit, 
-                ang_unit = ang_unit,
-                callback_feedback = self.cb_nav_feedback,
-                callback_finish = self.cb_nav_finish,
-                options={"behavior_tree": "compute_path"},
-                wait=True,
-            )
-            self.log.debug(f'path {x, y, angle} available!')
-            return True
-        except Exception as e:
-            self.log.debug(f'path {x, y, angle} not available!')
-            return False    
-        
-
     def check_final_queue(self,
                           queue: deque
                           ):
@@ -549,6 +523,34 @@ class SkillBelinsonApproach(RayaFSMSkill):
         return weighted_average
     
 
+    async def check_path_available(self,
+                                   x,
+                                   y,
+                                   angle,
+                                   pos_unit,
+                                   ang_unit,
+                                   callback_feedback,
+                                   callback_finish
+                                   ):
+        try:
+            await self.nav.navigate_to_position( 
+                x = float(x), 
+                y = float(y), 
+                angle = float(angle), 
+                pos_unit = pos_unit, 
+                ang_unit = ang_unit,
+                callback_feedback = callback_feedback,
+                callback_finish = callback_finish,
+                options={"behavior_tree": "compute_path"},
+                wait = True
+            )
+            self.app.log.debug(f'path {x, y, angle} available!')
+            return True
+        except Exception as e:
+            self.app.log.debug(f'path {x, y, angle} not available!')
+            return False    
+
+
     async def navigation_sequence(self,
                             x,
                             y,
@@ -559,7 +561,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             callback_feedback,
                             callback_finish,
                             close_to_position = False,
-                            max_radius = 0.8
+                            dx = 2,
+                            dy = 2
                             ):
         
         if not close_to_position:
@@ -574,49 +577,56 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 callback_finish = callback_finish
             )
         
+        # Try to navigate close to the desired position
         else:
-
-            self.app.log.debug('/'*50)
-            self.app.log.debug(f'Requested position: {x}, {y}, {angle}')
-
+            # Set parameters
+            grid = GRID.copy()
+            sorted_grid = sorted(
+                grid,
+                key = lambda point: abs(math.atan2(point[1], point[0]) - angle)
+                )
+            
             path_available = False
-            dx = 1 if pos_unit == POSITION_UNIT.PIXELS else 0.05
-            dy = 1 if pos_unit == POSITION_UNIT.PIXELS else 0.05
-            sign = 1
+            dx = dx if pos_unit == POSITION_UNIT.PIXELS else dx*0.05
+            dy = dy if pos_unit == POSITION_UNIT.PIXELS else dy*0.05
 
-            for xi in range(GRID_X):
-                for yi in range(GRID_Y):
 
-                    if path_available:
-                        break
+            # Check path availability in an AxB grid
+            while not path_available:
+                for radius in range(1,6):
+                    for block in sorted_grid:
+                        new_x = x + block[0]*radius*dx
+                        new_y = y + block[1]*radius*dy
 
-                    new_x = x + xi*sign*dx
-                    new_y = y + yi*sign*dy
-                    
-                    path_available = await self.check_path_available(
-                                        x = new_x,
-                                        y = new_y,
-                                        angle = angle,
-                                        pos_unit = pos_unit,
-                                        ang_unit = ang_unit,
-                                        callback_feedback = callback_feedback,
-                                        callback_finish = callback_finish
-                                        )
-                    sign *= -1
+                        path_available = await self.check_path_available(
+                                            x = new_x,
+                                            y = new_y,
+                                            angle = angle,
+                                            pos_unit = pos_unit,
+                                            ang_unit = ang_unit,
+                                            callback_feedback = callback_feedback,
+                                            callback_finish = callback_finish
+                                            )
+                        
+                        # Try to navigate to the new found position
+                        if path_available:
+                            try:
+                                await self.nav.navigate_to_position(
+                                x = new_x,
+                                y = new_y,
+                                angle = angle,
+                                pos_unit = pos_unit,
+                                ang_unit = ang_unit,
+                                wait = wait,
+                                callback_feedback = callback_feedback,
+                                callback_finish = callback_finish
+                                )
+                                return
 
-            if path_available:
-                await self.nav.navigate_to_position(
-                x = new_x,
-                y = new_y,
-                angle = angle,
-                pos_unit = pos_unit,
-                ang_unit = ang_unit,
-                wait = wait,
-                callback_feedback = callback_feedback,
-                callback_finish = callback_finish
-            )
-                
-            else:
+                            except Exception as e:
+                                path_available = False
+            
+                # If the whole grid was checked and path isnt available, raise error
                 raise RayaNoPathToGoal
         
     # =============================== Callbacks =============================== #
