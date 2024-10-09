@@ -85,7 +85,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
             cameras_controller = self.cameras
         )
         self.face_detections = {}
-        await self.sleep(3.0)
+        await self.sleep(2.0)
 
 
     async def enter_SCAN_FOR_DETECTIONS(self):
