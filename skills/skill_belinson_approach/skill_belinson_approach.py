@@ -583,7 +583,10 @@ class SkillBelinsonApproach(RayaFSMSkill):
             grid = GRID.copy()
             sorted_grid = sorted(
                 grid,
-                key = lambda point: abs(math.atan2(point[1], point[0]) - angle)
+                key = lambda point: abs(
+                    np.degrees(
+                        np.arctan2(point[0], point[1])) - np.degrees(angle)
+                        )
                 )
             
             path_available = False
@@ -593,7 +596,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
             # Check path availability in an AxB grid
             while not path_available:
-                for radius in range(1,6):
+                for radius in range(1,MAX_RADIUS_IDX+1):
                     for block in sorted_grid:
                         new_x = x + block[0]*radius*dx
                         new_y = y + block[1]*radius*dy
