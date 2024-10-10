@@ -10,7 +10,7 @@ class RayaApplication(RayaApplicationBase):
         self.log.warn('Executing setup')
         await self.skill_dock.execute_setup(
             setup_args={
-                'map_name' : 'Belinson__default'
+                'map_name' : 'testing__map'
             }
         )
 
@@ -19,7 +19,7 @@ class RayaApplication(RayaApplicationBase):
         try:
             execute_result = await self.skill_dock.execute_main(
                 execute_args={
-                    'face_angle' : -90.0
+                    'face_angle' : 0.0
                 },
                 callback_feedback=self.cb_feedback
             )
