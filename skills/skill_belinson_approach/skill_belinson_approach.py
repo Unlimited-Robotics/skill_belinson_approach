@@ -129,36 +129,36 @@ class SkillBelinsonApproach(RayaFSMSkill):
                     distance = self.execute_args['distance_to_goal']
                     ).point
         
-        # Check if the path to the calculated point is available
-        path_available = await self.check_path_available(
-                                                projected_point.x,
-                                                projected_point.y,
-                                                self.execute_args['face_angle']
-                                                )
+        # # Check if the path to the calculated point is available
+        # path_available = await self.check_path_available(
+        #                                         projected_point.x,
+        #                                         projected_point.y,
+        #                                         self.execute_args['face_angle']
+        #                                         )
 
-        # Compute the desired coordinates to navigate to
-        if path_available and not self.nav.is_navigating():
-            path_available = False
+        # # Compute the desired coordinates to navigate to
+        # if path_available and not self.nav.is_navigating():
+        #     path_available = False
 
             # Navigate towards the patient
-            try:
-                await self.navigation_sequence(
-                    x = projected_point.x,
-                    y = projected_point.y,
-                    angle = self.execute_args['face_angle'],
-                    pos_unit = POSITION_UNIT.METERS,
-                    ang_unit = ANGLE_UNIT.DEGREES,
-                    wait = True,
-                    callback_feedback = self.cb_nav_feedback,
-                    callback_finish = self.cb_nav_finish,
-                    close_to_position = self.close_to_position
-                )
-                self.face_approach_success = True
+        try:
+            await self.navigation_sequence(
+                x = projected_point.x,
+                y = projected_point.y,
+                angle = self.execute_args['face_angle'],
+                pos_unit = POSITION_UNIT.METERS,
+                ang_unit = ANGLE_UNIT.DEGREES,
+                wait = True,
+                callback_feedback = self.cb_nav_feedback,
+                callback_finish = self.cb_nav_finish,
+                close_to_position = self.close_to_position
+            )
+            self.face_approach_success = True
 
-            except Exception as e:
-                self.face_approach_success = False
-        else:
+        except Exception as e:
             self.face_approach_success = False
+        # else:
+        #     self.face_approach_success = False
 
     async def enter_DETECT_FEET(self):
         self.last_state = 'DETECT_FEET'
@@ -249,8 +249,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.lidar.create_obstacle_listener(
                 listener_name = 'obstacle',
                 callback = self.callback_obstacle,
-                lower_angle = -10,
-                upper_angle = 10,
+                lower_angle = -15,
+                upper_angle = 15,
                 upper_distance = DISTANCE_CONST, 
                 ang_unit=ANGLE_UNIT.DEGREES,
             )
@@ -561,8 +561,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             callback_feedback,
                             callback_finish,
                             close_to_position = False,
-                            dx = 2,
-                            dy = 2
+                            dx = 1,
+                            dy = 1
                             ):
         
         if not close_to_position:
