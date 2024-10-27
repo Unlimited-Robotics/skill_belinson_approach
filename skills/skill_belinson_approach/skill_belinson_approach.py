@@ -84,7 +84,6 @@ class SkillBelinsonApproach(RayaFSMSkill):
             call_without_detections = True,
             cameras_controller = self.cameras
         )
-        self.face_detections = {}
         await self.sleep(3.0)
 
 
@@ -220,14 +219,14 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.obstacle_detected = False
 
         # Create obstacle listener
-        self.lidar.create_obstacle_listener(
-                listener_name = 'obstacle',
-                callback = self.callback_obstacle,
-                lower_angle = -20,
-                upper_angle = 20,
-                upper_distance = DISTANCE_CONST, 
-                ang_unit=ANGLE_UNIT.DEGREES,
-            )
+        # self.lidar.create_obstacle_listener(
+        #         listener_name = 'obstacle',
+        #         callback = self.callback_obstacle,
+        #         lower_angle = -20,
+        #         upper_angle = 20,
+        #         upper_distance = DISTANCE_CONST, 
+        #         ang_unit=ANGLE_UNIT.DEGREES,
+        #     )
         
         while not self.obstacle_detected:
             try:
@@ -385,6 +384,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.current_face_detection = None
         self.target_angle = None
         self.required_distance = None
+        self.face_detections = {}
+
 
 
     async def get_lidar_data(self, lower_angle, upper_angle):
@@ -716,9 +717,12 @@ class SkillBelinsonApproach(RayaFSMSkill):
     async def async_cb_lidar(self, arg1, arg2, arg3, arg4):
 
         lidar_data = await self.get_lidar_data(**LIDAR_SCAN_PARAMS)
-        print(f'min distance: {min(lidar_data)}')
+        min_distance = min(lidar_data)
 
-        if self.obstacle_detected:
+        print(f'min distance: {min_distance}')
+
+        if min_distance < DISTANCE_CONST or min_distance == np.nan:
+            self.obstacle_detected = True 
             await self.motion.cancel_motion()
 
 
