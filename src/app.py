@@ -19,7 +19,7 @@ class RayaApplication(RayaApplicationBase):
         try:
             execute_result = await self.skill_dock.execute_main(
                 execute_args={
-                    'face_angle' : 6.0
+                    'face_angle' : 0.0
                 },
                 callback_feedback=self.cb_feedback
             )

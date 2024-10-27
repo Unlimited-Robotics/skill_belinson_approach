@@ -127,6 +127,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 callback_finish = self.cb_nav_finish,
                 close_to_position = self.close_to_position
             )
+
             self.face_approach_success = True
 
         except Exception as e:
@@ -186,7 +187,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
             if type(weighted_distance) is not int:
                 weighted_distance = unweighted_distance
 
-            distance_coeff = min(lidar_data) - DISTANCE_CONST
+            distance_coeff = max((min(lidar_data) - DISTANCE_CONST), 0.01)
 
             self.log.debug(f'distance offset: {(distance_coeff - weighted_distance)/distance_coeff}')
 
@@ -357,6 +358,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         # Enable controllers
         self.ui: UIController = await self.get_controller('ui')
         self.log.info('UI controller - Enabled')
+        self.leds: LedsController = await self.get_controller('leds')
         self.log.info('Leds controller - Enabled')
         self.nav: NavigationController = await self.get_controller('navigation')
         self.log.info('Navigation controller - Enabled')
@@ -461,7 +463,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                     y = detection_position[1],
                                     z = detection_position[2]
                                     )
-        target_angle = self.inverse_angle(self.execute_args['face_angle'])
+        # target_angle = self.inverse_angle(self.execute_args['face_angle'])
+        target_angle = self.inverse_angle(detection_angle)
+
 
         quat = tf_transformations.quaternion_from_euler(        
                                                 0.0,
@@ -589,50 +593,63 @@ class SkillBelinsonApproach(RayaFSMSkill):
             # Set params
             required_distance = self.required_distance
             path_available = False
+            cnt = 1
+            screen = UI_RECOMPUTING_PATH.copy()
            
             # Check path availability on a line in front of the patient
             while not path_available:
                 for idx in LINE_IDX:
-                    new_distance = required_distance + idx*d_dist
+                    for aidx in ANGLE_IDX:
+                        
+                        # Compute new distance and projection angle
+                        new_distance = required_distance + idx*d_dist
+                        new_angle = angle + aidx
 
-                    print('='*50)
-                    print(f'new distance is: {new_distance}')
-                    print('='*50)
+                        # Projected a new point based on the distance and angle
+                        new_point = self.get_projected_detection_point(
+                                                    self.current_face_detection,
+                                                    new_angle,
+                                                    new_distance
+                                                    )
 
-                    new_point = self.get_projected_detection_point(
-                                                self.current_face_detection,
-                                                angle,
-                                                new_distance
-                                                )
-                    path_available = await self.check_path_available(
-                                        x = new_point.x,
-                                        y = new_point.y,
-                                        angle = angle,
-                                        pos_unit = pos_unit,
-                                        ang_unit = ang_unit,
-                                        callback_feedback = callback_feedback,
-                                        callback_finish = callback_finish
-                                        )
-                            
-                    # Try to navigate to the new found position
-                    if path_available:
-                        try:
-                            await self.nav.navigate_to_position(
-                            x = new_point.x,
-                            y = new_point.y,
-                            angle = angle,
-                            pos_unit = pos_unit,
-                            ang_unit = ang_unit,
-                            wait = wait,
-                            callback_feedback = callback_feedback,
-                            callback_finish = callback_finish
-                            )
-                            return
+                        # Display computation
+                        screen['title'] = \
+                            f'Checking path #{cnt}/{len(LINE_IDX)*len(ANGLE_IDX)}'
+                        await self.ui.display_screen(**screen)
 
-                        except Exception as e:
-                            path_available = False
-        
-                # If the whole grid was checked and path isnt available, raise error
+                        # Check availability of the new generated point
+                        path_available = await self.check_path_available(
+                                            x = new_point.x,
+                                            y = new_point.y,
+                                            angle = angle,
+                                            pos_unit = pos_unit,
+                                            ang_unit = ang_unit,
+                                            callback_feedback = callback_feedback,
+                                            callback_finish = callback_finish
+                                            )
+                                
+                        # Try to navigate to the new found position
+                        if path_available:
+                            try:
+                                await self.nav.navigate_to_position(
+                                x = new_point.x,
+                                y = new_point.y,
+                                angle = angle,
+                                pos_unit = pos_unit,
+                                ang_unit = ang_unit,
+                                wait = wait,
+                                callback_feedback = callback_feedback,
+                                callback_finish = callback_finish
+                                )
+                                return
+
+                            except Exception as e:
+                                path_available = False
+
+                        # Update counter
+                        cnt += 1
+            
+                # If the whole arc was checked and path isnt available, raise error
                 raise RayaNoPathToGoal
         
     # =============================== Callbacks =============================== #

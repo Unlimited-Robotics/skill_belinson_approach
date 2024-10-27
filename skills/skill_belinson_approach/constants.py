@@ -1,3 +1,5 @@
+from raya.enumerations import UI_THEME_TYPE
+
 # Cameras
 APPROACH_FACE_CAMERA = 'nav_bottom'
 APPROACH_FEET_CAMERA = 'nav_top'
@@ -46,13 +48,32 @@ MSGS_DICT = {
 
 # Navigation params
 LINE_IDX = list(range(-10, 0, 1)) + list(range(0, 11, 1))
+ANGLE_IDX = list(range(-40, 0, 10)) + list(range(0, 41, 10))
 
 # Feet detection parameters
 FEET_DETECTION_THRESHOLD = 0.6
 FEET_SIZE_THRESHOLD = 0.04
 DISTANCE_CONST = 0.53
 FEET_DIST_BEFORE_STOP = 0.2
-MAX_DISTANCE_OFFSET_PERCENTAGE = 0.1
+MAX_DISTANCE_OFFSET_PERCENTAGE = 0.8
+
+# UI parameters
+background_url = 'url(/assets/belinson_logo.png)'
+
+CUSTOM_STYLE = {'title' : {'font-size' : '150px'},
+                        'subtitle' : {'font-size' : '70px'},
+                        'background' : {'background' : background_url,
+                                        'backgroundRepeat' : 'no-repeat',
+                                        'backgroundSize' : 'cover'}
+                }
+
+UI_RECOMPUTING_PATH = {
+    'title' : '/',
+    'show_loader' : True,
+    'back_button_text' : '',
+    'theme' : UI_THEME_TYPE.WHITE,
+    'custom_style' : CUSTOM_STYLE
+}
 
 # Error messages
 ERROR_NO_FACES_DETECTED = (1, 'No faces detected')
