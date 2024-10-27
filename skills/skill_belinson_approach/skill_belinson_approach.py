@@ -640,9 +640,12 @@ class SkillBelinsonApproach(RayaFSMSkill):
         if detections:
             self.face_detections = sorted(detections,
                 key = lambda x: (self.calculate_distance_img_center(
-                                    x, image,
-                                    only_y = True),
-                                    -x['confidence'])
+                                                            x, image,
+                                                            only_y = True
+                                                            ),
+                                                            -x['distance'],
+                                                            -x['confidence']
+                                                            )
                 )
             self.face_detections = [self.face_detections[0]]
 
@@ -711,6 +714,10 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
 
     async def async_cb_lidar(self, arg1, arg2, arg3, arg4):
+
+        lidar_data = await self.get_lidar_data(**LIDAR_SCAN_PARAMS)
+        print(f'min distance: {min(lidar_data)}')
+
         if self.obstacle_detected:
             await self.motion.cancel_motion()
 
