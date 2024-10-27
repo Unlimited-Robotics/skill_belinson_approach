@@ -43,7 +43,9 @@ MSGS_DICT = {
     'APPROACH_FEET_CV' : {'success' : 4,
                           'failure' : 'Could not approach feet'},
     'ONLY_FACE' : {'success' : 5,
-                   'failure' : 'Error'}
+                   'failure' : 'Error'},
+    'RECOMPUTE_PATH' : {'success' : 6,
+                        'failure' : 'Could not recompute path'}
  }
 
 # Navigation params

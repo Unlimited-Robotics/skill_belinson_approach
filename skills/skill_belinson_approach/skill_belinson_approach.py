@@ -590,6 +590,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
         
         # Try to navigate close to the desired position
         else:
+            # Send feedback
+            await self.send_feedback(
+                        {'skill_success' : None,
+                        'status_msg' : MSGS_DICT['RECOMPUTE_PATH']['success']})
+
             # Set params
             required_distance = self.required_distance
             path_available = False
