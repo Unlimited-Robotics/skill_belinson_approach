@@ -18,7 +18,7 @@ FEET_DETECTOR_PARAMS = {
 }
 
 SCAN_FOR_FACES_ROTATION_PARAMS = {
-    'angle' : 20.0,
+    'angle' : 30.0,
     'angular_speed' : 5.0,
     'wait' : True
 }
