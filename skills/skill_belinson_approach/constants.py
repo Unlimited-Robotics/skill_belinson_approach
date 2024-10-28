@@ -45,7 +45,9 @@ MSGS_DICT = {
     'ONLY_FACE' : {'success' : 5,
                    'failure' : 'Error'},
     'RECOMPUTE_PATH' : {'success' : 6,
-                        'failure' : 'Could not recompute path'}
+                        'failure' : 'Could not recompute path'},
+    'OBSTACLE_DETECTED' : {'success' : 7,
+                           'failure' : 'Nothing detected'}
  }
 
 # Navigation params
@@ -56,6 +58,7 @@ ANGLE_IDX = list(range(-40, 0, 10)) + list(range(0, 41, 10))
 FEET_DETECTION_THRESHOLD = 0.6
 FEET_SIZE_THRESHOLD = 0.04
 DISTANCE_CONST = 0.53
+OBSTACLE_ADDED_DISTANCE = 0.15
 FEET_DIST_BEFORE_STOP = 0.2
 MAX_DISTANCE_OFFSET_PERCENTAGE = 0.8
 
