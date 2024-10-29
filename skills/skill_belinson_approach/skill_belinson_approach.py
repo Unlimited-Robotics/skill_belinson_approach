@@ -745,18 +745,18 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
         # Obstacle detected
         if min_distance < DISTANCE_CONST or min_distance == np.nan:
-            self.obstacle_detected = True 
+            self.obstacle_detected = True  
             await self.motion.cancel_motion()
 
             # If obstacle is too close to initial distance, alert the
             # surroundings that the robot stopped too far
-            if abs(min_distance - self.execute_args['distance_to-goal']) > \
+            if abs(min_distance - self.execute_args['distance_to_goal']) > \
                 DISTANCE_CONST + OBSTACLE_ADDED_DISTANCE:
                     await self.send_feedback(
-                    {'skill_success' : True,
-                    'status_msg' : MSGS_DICT['OBSTACLE_DETECTED']['success']
-                    }
-                )
+                        {'skill_success' : True,
+                        'status_msg' : MSGS_DICT['OBSTACLE_DETECTED']['success']
+                        }
+                    )
 
     async def async_cbf_lidar(self, arg1, arg2, arg3, arg4):
         pass
