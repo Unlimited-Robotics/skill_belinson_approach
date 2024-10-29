@@ -51,7 +51,7 @@ MSGS_DICT = {
  }
 
 # Navigation params
-LINE_IDX = list(range(-10, 0, 1)) + list(range(0, 11, 1))
+LINE_IDX = list(range(-10, 0, 3)) + list(range(0, 11, 3))
 ANGLE_IDX = list(range(-40, 0, 10)) + list(range(0, 41, 10))
 
 # Feet detection parameters
