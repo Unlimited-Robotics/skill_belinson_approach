@@ -90,13 +90,6 @@ class SkillBelinsonApproach(RayaFSMSkill):
     async def enter_SCAN_FOR_DETECTIONS(self):
         self.last_state = 'SCAN_FOR_DETECTIONS'
 
-        # Indicative leds
-        await self.leds.animation(group = 'head',
-                                  color = 'blue',
-                                  animation = 'MOTION_1',
-                                  repetitions = 3,
-                                  wait = False)
-
         # Take predefined rotation params
         rotation_params = SCAN_FOR_FACES_ROTATION_PARAMS.copy()
 
