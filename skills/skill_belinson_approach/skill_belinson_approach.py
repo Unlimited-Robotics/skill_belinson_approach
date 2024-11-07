@@ -618,9 +618,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                                     )
 
                         # Display computation
-                        screen['title'] = \
-                            f'Checking path #{cnt}/{len(LINE_IDX)*len(ANGLE_IDX)}'
-                        await self.ui.display_screen(**screen)
+                        await self.ui.display_animation(**screen)
 
                         # Check availability of the new generated point
                         path_available = await self.check_path_available(
@@ -635,6 +633,12 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                 
                         # Try to navigate to the new found position
                         if path_available:
+                            
+                            # Display result
+                            screen['title'] = f'מעדכן מסלול'
+                            screen['content'] = '/assets/UI_ARRIVING.gif'
+                            await self.ui.display_animation(**screen)
+
                             try:
                                 await self.nav.navigate_to_position(
                                 x = new_point.x,

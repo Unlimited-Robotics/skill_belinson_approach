@@ -1,4 +1,4 @@
-from raya.enumerations import UI_THEME_TYPE
+from raya.enumerations import UI_THEME_TYPE, UI_ANIMATION_TYPE
 
 # Cameras
 APPROACH_FACE_CAMERA = 'nav_bottom'
@@ -73,9 +73,11 @@ CUSTOM_STYLE = {'title' : {'font-size' : '150px'},
                 }
 
 UI_RECOMPUTING_PATH = {
-    'title' : '/',
+    'title' : 'חישוב מסלול מחדש',
     'show_loader' : True,
     'back_button_text' : '',
+    'format' : UI_ANIMATION_TYPE.URL,
+    'content' : '/assets/loader_bar.gif',
     'theme' : UI_THEME_TYPE.WHITE,
     'custom_style' : CUSTOM_STYLE
 }
