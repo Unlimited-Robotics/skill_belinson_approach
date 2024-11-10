@@ -573,7 +573,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             callback_feedback,
                             callback_finish,
                             close_to_position = False,
-                            d_dist = 0.075,
+                            d_dist = 0.05,
                             ):
         
         if not close_to_position:
