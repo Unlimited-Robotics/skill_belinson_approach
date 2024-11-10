@@ -128,7 +128,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 close_to_position = self.close_to_position
             )
 
-            self.face_approach_success = True
+            # Ensure Y (lateral) offset of the robot is lower than max allowed
+            if abs(self.face_detections[0]['center_point'][1]) < MAX_FACE_Y_OFFSET:
+                self.face_approach_success = True
 
         except Exception as e:
             self.face_approach_success = False
@@ -298,6 +300,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
             self.set_state('DETECT_FEET')
         
         elif self.face_detection_attempts < MAX_APPROACH_ATTEMPTS:
+            self.face_approach_attempts += 1
             self.close_to_position = True
             self.set_state('IDLE')
 
@@ -379,6 +382,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
     def setup_variables(self):
         self.face_detection_attempts = 0
         self.feet_detection_attempts = 0
+        self.face_approach_attempts = 0
         self.feet_detected = False
         self.feet_bad_detection = False
         self.close_to_position = False
@@ -387,7 +391,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.target_angle = None
         self.required_distance = None
         self.face_detections = {}
-
+        self.face_approach_success = False
 
 
     async def get_lidar_data(self, lower_angle, upper_angle):
@@ -609,6 +613,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         # Compute new distance and projection angle
                         new_distance = required_distance + idx*d_dist
                         new_angle = angle + aidx
+
+                        print(f'/'*75)
+                        print(f'NEW DISTANCE: {new_distance}')
+                        print(f'NEW ANGLE: {aidx}')
+                        print(f'Y OFFSET: {new_distance*np.sin(np.radians(aidx))}')
 
                         # Projected a new point based on the distance and angle
                         new_point = self.get_projected_detection_point(
