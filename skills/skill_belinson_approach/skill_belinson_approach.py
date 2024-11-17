@@ -109,14 +109,16 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.last_state = 'APPROACH_FACE'
 
          # Calculate navigation point to face
-        self.current_face_detection = self.face_detections[0]
+        self.init_face_detection = self.face_detections[0]
         self.required_distance = self.execute_args['distance_to_goal']
-        projected_point = self.get_projected_detection_point_base_link(
-                                                self.current_face_detection,
+
+        print(f'init face detection: {self.init_face_detection}')
+
+        projected_point = await self.get_projected_detection_point_base_link(
+                                                self.init_face_detection,
                                                 self.execute_args['face_angle'],
                                                 self.required_distance
-                                                )
-       
+                                                )       
         # Navigate towards the patient
         try:
             await self.navigation_sequence(
@@ -132,8 +134,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
             )
 
             # Ensure Y (lateral) offset of the robot is lower than max allowed
-            print(f'AFTER APPROACH FACE OFFSET: {self.current_face_detection["center_point"][1]}')
-            if abs(self.current_face_detection['center_point'][1]) < MAX_FACE_Y_OFFSET:
+            print(f'AFTER APPROACH FACE OFFSET: {self.init_face_detection["center_point"][1]}')
+            if abs(self.init_face_detection['center_point'][1]) < MAX_FACE_Y_OFFSET:
                 self.face_approach_success = True
 
         except Exception as e:
@@ -160,7 +162,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.last_state = 'APPROACH_FEET_CV'
 
         # Move forwards as long as you detect feet
-        while self.feet_detected and self.face_queue:
+        while self.feet_detected and len(self.face_queue) > 0:
             try:
                 await self.motion.set_velocity(
                     x_velocity = 0.03,
@@ -235,7 +237,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         #         ang_unit=ANGLE_UNIT.DEGREES,
         #     )
         
-        while not self.obstacle_detected and self.face_queue:
+        while not self.obstacle_detected and len(self.face_queue) > 0:
             try:
                 await self.motion.set_velocity(
                     x_velocity = 0.015,
@@ -464,6 +466,12 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                                 detection_angle,
                                                 required_distance
                                                 ):
+        '''
+        Same as get_projected_detection_point but instead of using the detection
+        coordinates in the map, they detection in relation to base link is being
+        used along with the robot's current position, to calculate the point of
+        navigation in the map
+        '''
         # Get robot's current position in relation to map
         current_pos_meters_degrees = await self.nav.get_position(
                 pos_unit = POSITION_UNIT.METERS,
@@ -476,8 +484,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
         detection_position = detection['center_point']
 
         # Compute detection's position in relation to map
-        x_detection = x_robot + detection_position[0]
-        y_detection = y_robot + detection_position[1]        
+        x_detection = x_robot - detection_position[0]
+        y_detection = y_robot - detection_position[1]
 
         # Convert detection to quaternion
         goal_predict = Pose()
@@ -509,8 +517,13 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                       detection_angle,
                                       required_distance
                                       ):
+        ''' 
+        Get the point to navigate to in order to be required_distance away from
+        the patient, assuming they're facing detection_angle
+        '''
         detection_position = detection['center_point_map']
         goal_predict = Pose()
+
         goal_predict.position = Point(x = detection_position[0],
                                     y = detection_position[1],
                                     z = detection_position[2]
@@ -668,12 +681,12 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         print(f'Y OFFSET: {new_distance*np.sin(np.radians(aidx))}')
 
                         # Projected a new point based on the distance and angle
-                        new_point = self.get_projected_detection_point_base_link(
-                                                    self.current_face_detection,
+                        new_point = await self.get_projected_detection_point_base_link(
+                                                    self.init_face_detection,
                                                     new_angle,
                                                     new_distance
                                                     )
-
+                        
                         # Display computation
                         await self.ui.display_animation(**screen)
 
@@ -731,7 +744,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                                             -x['confidence']
                                                             )
                 )
-            self.current_face_detection = [self.face_detections[0]]
+            self.current_face_detection = self.face_detections[0]
             self.face_queue.append(self.face_detections)
         
         elif self.face_queue:
@@ -793,7 +806,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
 
     async def async_cb_feet(self, arg1, arg2, arg3, arg4):
-        if not self.feet_detected:
+        if not self.feet_detected or not len(self.face_queue) > 0:
             await self.motion.cancel_motion()
 
 
@@ -806,10 +819,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
         lidar_data = await self.get_lidar_data(**LIDAR_SCAN_PARAMS)
         min_distance = min(lidar_data)
 
-        print(f'min distance: {min_distance}')
-
         # Obstacle detected
-        if min_distance < DISTANCE_CONST or min_distance == np.nan:
+        if min_distance < DISTANCE_CONST or min_distance == np.nan or \
+            not len(self.face_queue) > 0:
             self.obstacle_detected = True  
             await self.motion.cancel_motion()
 
