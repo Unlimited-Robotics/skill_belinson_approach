@@ -757,7 +757,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
             self.current_face_detection = self.face_detections[0]
             self.face_queue.append(self.face_detections)
         
-        elif self.face_queue:
+        elif len(self.face_queue) > 0:
             self.face_queue.popleft()
 
 
