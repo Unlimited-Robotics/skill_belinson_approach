@@ -77,6 +77,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
     async def enter_DETECT_FACE(self):
         self.last_state = 'DETECT_FACE'
 
+        # Create a face queue
+        self.face_queue = deque(maxlen = 5)
+
         # Initiate detector and give it 3 seconds to detect faces
         self.face_detector.set_img_detections_callback(
             callback = self.callback_all_faces,
@@ -108,7 +111,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
          # Calculate navigation point to face
         self.current_face_detection = self.face_detections[0]
         self.required_distance = self.execute_args['distance_to_goal']
-        projected_point = self.get_projected_detection_point(
+        projected_point = self.get_projected_detection_point_base_link(
                                                 self.current_face_detection,
                                                 self.execute_args['face_angle'],
                                                 self.required_distance
@@ -129,7 +132,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
             )
 
             # Ensure Y (lateral) offset of the robot is lower than max allowed
-            if abs(self.face_detections[0]['center_point'][1]) < MAX_FACE_Y_OFFSET:
+            print(f'AFTER APPROACH FACE OFFSET: {self.current_face_detection["center_point"][1]}')
+            if abs(self.current_face_detection['center_point'][1]) < MAX_FACE_Y_OFFSET:
                 self.face_approach_success = True
 
         except Exception as e:
@@ -156,7 +160,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.last_state = 'APPROACH_FEET_CV'
 
         # Move forwards as long as you detect feet
-        while self.feet_detected:
+        while self.feet_detected and self.face_queue:
             try:
                 await self.motion.set_velocity(
                     x_velocity = 0.03,
@@ -231,7 +235,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         #         ang_unit=ANGLE_UNIT.DEGREES,
         #     )
         
-        while not self.obstacle_detected:
+        while not self.obstacle_detected and self.face_queue:
             try:
                 await self.motion.set_velocity(
                     x_velocity = 0.015,
@@ -299,7 +303,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
             self.set_state('DETECT_FEET')
         
-        elif self.face_detection_attempts < MAX_APPROACH_ATTEMPTS:
+        elif self.face_approach_attempts < MAX_APPROACH_ATTEMPTS:
             self.face_approach_attempts += 1
             self.close_to_position = True
             self.set_state('IDLE')
@@ -390,7 +394,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.current_face_detection = None
         self.target_angle = None
         self.required_distance = None
-        self.face_detections = {}
+        self.face_detections = []
         self.face_approach_success = False
 
 
@@ -455,6 +459,50 @@ class SkillBelinsonApproach(RayaFSMSkill):
         return inverse
 
 
+    async def get_projected_detection_point_base_link(self,
+                                                detection,
+                                                detection_angle,
+                                                required_distance
+                                                ):
+        # Get robot's current position in relation to map
+        current_pos_meters_degrees = await self.nav.get_position(
+                pos_unit = POSITION_UNIT.METERS,
+                ang_unit = ANGLE_UNIT.DEGREES
+                )
+        x_robot = current_pos_meters_degrees[0]
+        y_robot = current_pos_meters_degrees[1]
+
+        # Get detection's position in relation to base link
+        detection_position = detection['center_point']
+
+        # Compute detection's position in relation to map
+        x_detection = x_robot + detection_position[0]
+        y_detection = y_robot + detection_position[1]        
+
+        # Convert detection to quaternion
+        goal_predict = Pose()
+        goal_predict.position = Point(x = x_detection,
+                                    y = y_detection,
+                                    z = detection_position[2] #Irrelevant
+                                    )
+        target_angle = self.inverse_angle(detection_angle)
+
+        quat = tf_transformations.quaternion_from_euler(        
+                                                0.0,
+                                                0.0,
+                                                np.deg2rad(target_angle)
+                                                )
+        goal_predict.orientation = Quaternion(x=quat[0], y=quat[1],
+                                                z=quat[2], w=quat[3]
+                                                )
+
+        # Get projected point on the map
+        return self.get_projected_point(
+                    detection_pose = goal_predict,
+                    distance = required_distance
+                    ).point
+
+
 
     def get_projected_detection_point(self,
                                       detection,
@@ -496,7 +544,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         from the detection
         INPUTS
             detection_pose - pose of the detection in quanternion
-            distance - desired distance between the robot and the detection
+            distance - desired distance between the robot and the detection [m]
         
         OUTPUTS
             projected_point - an x, y coordinate
@@ -620,7 +668,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         print(f'Y OFFSET: {new_distance*np.sin(np.radians(aidx))}')
 
                         # Projected a new point based on the distance and angle
-                        new_point = self.get_projected_detection_point(
+                        new_point = self.get_projected_detection_point_base_link(
                                                     self.current_face_detection,
                                                     new_angle,
                                                     new_distance
@@ -683,7 +731,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                                             -x['confidence']
                                                             )
                 )
-            self.face_detections = [self.face_detections[0]]
+            self.current_face_detection = [self.face_detections[0]]
+            self.face_queue.append(self.face_detections)
+        
+        elif self.face_queue:
+            self.face_queue.popleft()
 
 
     def cb_nav_feedback(self, error, error_msg, distance_to_goal, speed):
