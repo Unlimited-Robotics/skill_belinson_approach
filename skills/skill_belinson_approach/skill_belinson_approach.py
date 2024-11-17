@@ -95,27 +95,30 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
         # Take predefined rotation params
         rotation_params = SCAN_FOR_FACES_ROTATION_PARAMS.copy()
+        rotation_params['callback_feedback_async'] = self.cb_async_rotate
 
         # Start scanning left and right to find faces
         for i in range(2):
-            if self.face_detections:
-                break
-            sign = 1 if (i+1)%2 == 0 else -1
-            rotation_params['angular_speed'] *= sign*(i+1)
-            await self.motion.rotate(**rotation_params)
+            try:
+                if self.face_detections:
+                    await self.sleep(1.0)
+                    break
+                
+                rotation_params['angle'] *= -(i+1)
+                await self.motion.rotate(**rotation_params)
+
+            except Exception as e:
+                pass
 
 
     async def enter_APPROACH_FACE(self):
         self.last_state = 'APPROACH_FACE'
 
          # Calculate navigation point to face
-        self.init_face_detection = self.face_detections[0]
+        self.current_face_detection = self.face_detections[0]
         self.required_distance = self.execute_args['distance_to_goal']
-
-        print(f'init face detection: {self.init_face_detection}')
-
-        projected_point = await self.get_projected_detection_point_base_link(
-                                                self.init_face_detection,
+        projected_point = self.get_projected_detection_point(
+                                                self.current_face_detection,
                                                 self.execute_args['face_angle'],
                                                 self.required_distance
                                                 )       
@@ -134,8 +137,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
             )
 
             # Ensure Y (lateral) offset of the robot is lower than max allowed
-            print(f'AFTER APPROACH FACE OFFSET: {self.init_face_detection["center_point"][1]}')
-            if abs(self.init_face_detection['center_point'][1]) < MAX_FACE_Y_OFFSET:
+            print(f'AFTER APPROACH FACE OFFSET: {self.current_face_detection["center_point"][1]}')
+            if abs(self.current_face_detection['center_point'][1]) < MAX_FACE_Y_OFFSET:
                 self.face_approach_success = True
 
         except Exception as e:
@@ -479,13 +482,20 @@ class SkillBelinsonApproach(RayaFSMSkill):
                 )
         x_robot = current_pos_meters_degrees[0]
         y_robot = current_pos_meters_degrees[1]
+        angle_robot = current_pos_meters_degrees[2]
+        angle_diff = (angle_robot - detection_angle)%360
 
         # Get detection's position in relation to base link
         detection_position = detection['center_point']
 
         # Compute detection's position in relation to map
-        x_detection = x_robot - detection_position[0]
-        y_detection = y_robot - detection_position[1]
+        x_detection = x_robot - detection_position[0]*np.cos(np.radians(angle_diff))
+        y_detection = y_robot - detection_position[1]*np.sin(np.radians(angle_diff))
+
+        print(f'angle diff: {angle_diff}')
+        print(f'x diff: {detection_position[0]*np.cos(np.radians(angle_diff))}')
+        print(f'y diff: { detection_position[1]*np.sin(np.radians(angle_diff))}')
+
 
         # Convert detection to quaternion
         goal_predict = Pose()
@@ -682,7 +692,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
                         # Projected a new point based on the distance and angle
                         new_point = await self.get_projected_detection_point_base_link(
-                                                    self.init_face_detection,
+                                                    self.current_face_detection,
                                                     new_angle,
                                                     new_distance
                                                     )
@@ -749,6 +759,11 @@ class SkillBelinsonApproach(RayaFSMSkill):
         
         elif self.face_queue:
             self.face_queue.popleft()
+
+
+    async def cb_async_rotate(self, arg1, arg2, arg3, arg4):
+        if self.face_detections:
+            await self.motion.cancel_motion()
 
 
     def cb_nav_feedback(self, error, error_msg, distance_to_goal, speed):
