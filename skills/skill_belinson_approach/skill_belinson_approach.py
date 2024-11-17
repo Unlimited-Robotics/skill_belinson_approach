@@ -466,8 +466,9 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
     async def get_projected_detection_point_base_link(self,
                                                 detection,
-                                                detection_angle,
-                                                required_distance
+                                                # detection_angle,
+                                                required_distance,
+                                                extra_angle = 0.0
                                                 ):
         '''
         Same as get_projected_detection_point but instead of using the detection
@@ -483,14 +484,17 @@ class SkillBelinsonApproach(RayaFSMSkill):
         x_robot = current_pos_meters_degrees[0]
         y_robot = current_pos_meters_degrees[1]
         angle_robot = current_pos_meters_degrees[2]
-        angle_diff = (angle_robot - detection_angle)%360
+        # angle_diff = (angle_robot - detection_angle)%360
+        
+        angle_diff = (angle_robot - self.execute_args['face_angle'])%360 + extra_angle
+        print(f'angle diff is: {angle_diff}')
 
         # Get detection's position in relation to base link
         detection_position = detection['center_point']
 
         # Compute detection's position in relation to map
         x_detection = x_robot - detection_position[0]*np.cos(np.radians(angle_diff))
-        y_detection = y_robot - detection_position[1]*np.sin(np.radians(angle_diff))
+        y_detection = y_robot + detection_position[1]*np.sin(np.radians(angle_diff))
 
         print(f'angle diff: {angle_diff}')
         print(f'x diff: {detection_position[0]*np.cos(np.radians(angle_diff))}')
@@ -503,7 +507,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
                                     y = y_detection,
                                     z = detection_position[2] #Irrelevant
                                     )
-        target_angle = self.inverse_angle(detection_angle)
+        # target_angle = self.inverse_angle(detection_angle)
+        target_angle = self.inverse_angle(self.execute_args['face_angle'] + extra_angle)
 
         quat = tf_transformations.quaternion_from_euler(        
                                                 0.0,
@@ -691,10 +696,16 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         print(f'Y OFFSET: {new_distance*np.sin(np.radians(aidx))}')
 
                         # Projected a new point based on the distance and angle
+                        # new_point = await self.get_projected_detection_point_base_link(
+                        #                             self.current_face_detection,
+                        #                             new_angle,
+                        #                             new_distance
+                        #                             )
+
                         new_point = await self.get_projected_detection_point_base_link(
                                                     self.current_face_detection,
-                                                    new_angle,
-                                                    new_distance
+                                                    new_distance,
+                                                    aidx
                                                     )
                         
                         # Display computation
