@@ -21,7 +21,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
     DEFAULT_SETUP_ARGS = {'fsm_log_transitions':True,
                           'only_face' : False}
     REQUIRED_SETUP_ARGS = {'map_name'}
-    DEFAULT_EXECUTE_ARGS = {'distance_to_goal' : 1.3}
+    DEFAULT_EXECUTE_ARGS = {'distance_to_goal' : 1.3,
+                            'skip_navigation' : False}
     REQUIRED_EXECUTE_ARGS = {'face_angle'}
 
     ### Skill ###
@@ -36,7 +37,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
         'END',
     ]
 
-    INITIAL_STATE = 'DETECT_FACE'
+    INITIAL_STATE = 'DETECT_FACE' \
+        if not DEFAULT_EXECUTE_ARGS['skip_navigation'] else 'DETECT_FEET'
 
     END_STATES = [
         'END'
@@ -229,16 +231,6 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
         # Set obstacle detection to false
         self.obstacle_detected = False
-
-        # Create obstacle listener
-        # self.lidar.create_obstacle_listener(
-        #         listener_name = 'obstacle',
-        #         callback = self.callback_obstacle,
-        #         lower_angle = -20,
-        #         upper_angle = 20,
-        #         upper_distance = DISTANCE_CONST, 
-        #         ang_unit=ANGLE_UNIT.DEGREES,
-        #     )
         
         while not self.obstacle_detected and len(self.face_queue) > 0:
             try:
@@ -676,81 +668,63 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         'status_msg' : MSGS_DICT['RECOMPUTE_PATH']['success']})
 
             # Set params
-            required_distance = self.required_distance
             path_available = False
-            cnt = 1
             screen = UI_RECOMPUTING_PATH.copy()
+            grid = GRID.copy()
+            sorted_grid = sorted(
+                grid,
+                key = lambda point: abs(
+                    np.degrees(
+                        np.arctan2(point[0], point[1])) - np.degrees(angle)
+                        )
+                )
            
             # Check path availability on a line in front of the patient
             while not path_available:
-                for idx in LINE_IDX:
-                    for aidx in ANGLE_IDX:
+                for block in sorted_grid[:MAX_ALTERNATIVE_POINTS]:
+                    new_x = x + block[0]*MAX_RADIUS_IDX*d_dist
+                    new_y = y + block[1]*MAX_RADIUS_IDX*d_dist
+                    
+                    # Display computation
+                    await self.ui.display_animation(**screen)
+
+                    # Check availability of the new generated point
+                    path_available = await self.check_path_available(
+                                        x = new_x,
+                                        y = new_y,
+                                        angle = angle,
+                                        pos_unit = pos_unit,
+                                        ang_unit = ang_unit,
+                                        callback_feedback = callback_feedback,
+                                        callback_finish = callback_finish
+                                        )
+                            
+                    # Try to navigate to the new found position
+                    if path_available:
                         
-                        # Compute new distance and projection angle
-                        new_distance = required_distance + idx*d_dist
-                        new_angle = angle + aidx
-
-                        print(f'/'*75)
-                        print(f'NEW DISTANCE: {new_distance}')
-                        print(f'NEW ANGLE: {aidx}')
-                        print(f'Y OFFSET: {new_distance*np.sin(np.radians(aidx))}')
-
-                        # Projected a new point based on the distance and angle
-                        # new_point = await self.get_projected_detection_point_base_link(
-                        #                             self.current_face_detection,
-                        #                             new_angle,
-                        #                             new_distance
-                        #                             )
-
-                        new_point = await self.get_projected_detection_point_base_link(
-                                                    self.current_face_detection,
-                                                    new_distance,
-                                                    aidx
-                                                    )
-                        
-                        # Display computation
+                        # Display result
+                        screen['title'] = f'מעדכן מסלול'
+                        screen['content'] = '/assets/UI_ARRIVING.gif'
                         await self.ui.display_animation(**screen)
 
-                        # Check availability of the new generated point
-                        path_available = await self.check_path_available(
-                                            x = new_point.x,
-                                            y = new_point.y,
-                                            angle = angle,
-                                            pos_unit = pos_unit,
-                                            ang_unit = ang_unit,
-                                            callback_feedback = callback_feedback,
-                                            callback_finish = callback_finish
-                                            )
-                                
-                        # Try to navigate to the new found position
-                        if path_available:
-                            
-                            # Display result
-                            screen['title'] = f'מעדכן מסלול'
-                            screen['content'] = '/assets/UI_ARRIVING.gif'
-                            await self.ui.display_animation(**screen)
+                        try:
+                            await self.nav.navigate_to_position(
+                            x = new_x,
+                            y = new_y,
+                            angle = angle,
+                            pos_unit = pos_unit,
+                            ang_unit = ang_unit,
+                            wait = wait,
+                            callback_feedback = callback_feedback,
+                            callback_finish = callback_finish
+                            )
+                            return
 
-                            try:
-                                await self.nav.navigate_to_position(
-                                x = new_point.x,
-                                y = new_point.y,
-                                angle = angle,
-                                pos_unit = pos_unit,
-                                ang_unit = ang_unit,
-                                wait = wait,
-                                callback_feedback = callback_feedback,
-                                callback_finish = callback_finish
-                                )
-                                return
+                        except Exception as e:
+                            path_available = False
 
-                            except Exception as e:
-                                path_available = False
-
-                        # Update counter
-                        cnt += 1
-            
-                # If the whole arc was checked and path isnt available, raise error
-                raise RayaNoPathToGoal
+            # If the whole arc was checked and path isnt available, raise error
+            raise RayaNoPathToGoal
         
     # =============================== Callbacks =============================== #
 

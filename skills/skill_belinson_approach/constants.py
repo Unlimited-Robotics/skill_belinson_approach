@@ -51,8 +51,9 @@ MSGS_DICT = {
  }
 
 # Navigation params
-LINE_IDX = list(range(-10, 0, 5)) + list(range(5, 11, 5))
-ANGLE_IDX = list(range(-10, 0, 5)) + list(range(5, 11, 5))
+GRID = [[-1,1], [0,1], [1,1], [-1,0], [1,0], [-1,-1], [0,-1], [1,-1]]
+MAX_ALTERNATIVE_POINTS = 3
+MAX_RADIUS_IDX = 5
 
 # Feet detection parameters
 FEET_DETECTION_THRESHOLD = 0.6
