@@ -10,7 +10,8 @@ class RayaApplication(RayaApplicationBase):
         self.log.warn('Executing setup')
         await self.skill_dock.execute_setup(
             setup_args={
-                'map_name' : 'Belinson__hospital01',
+                # 'map_name' : 'Belinson__hospital01',
+                'map_name' : 'entireoffice__map',
                 'only_face' : False
             }
         )
@@ -20,7 +21,8 @@ class RayaApplication(RayaApplicationBase):
         try:
             execute_result = await self.skill_dock.execute_main(
                 execute_args={
-                    'face_angle' : -180.0
+                    'face_angle' : -7.0,
+                    'skip_navigation' : True
                 },
                 callback_feedback=self.cb_feedback
             )

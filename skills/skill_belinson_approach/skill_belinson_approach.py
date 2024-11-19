@@ -37,8 +37,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         'END',
     ]
 
-    INITIAL_STATE = 'DETECT_FACE' \
-        if not DEFAULT_EXECUTE_ARGS['skip_navigation'] else 'DETECT_FEET'
+    INITIAL_STATE = 'DETECT_FACE'
 
     END_STATES = [
         'END'
@@ -78,9 +77,6 @@ class SkillBelinsonApproach(RayaFSMSkill):
     # =============================== Actions =============================== #
     async def enter_DETECT_FACE(self):
         self.last_state = 'DETECT_FACE'
-
-        # Create a face queue
-        self.face_queue = deque(maxlen = 5)
 
         # Initiate detector and give it 3 seconds to detect faces
         self.face_detector.set_img_detections_callback(
@@ -255,7 +251,16 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
     # ============================= Transitions ============================= #
     async def transition_from_DETECT_FACE(self):
-        if self.face_detections:
+        if self.execute_args['skip_navigation']:
+            self.log.warn(f'/'*50)
+            self.log.warn('Skipping to state - DETECT_FEET')
+            self.log.warn(f'/'*50)
+            await self.send_feedback(
+                        {'skill_success' : None,
+                        'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
+            self.set_state('DETECT_FEET')
+
+        elif self.face_detections:
             await self.send_feedback(
                         {'skill_success' : None,
                         'status_msg' : MSGS_DICT['DETECT_FACE']['success']})
@@ -393,6 +398,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.required_distance = None
         self.face_detections = []
         self.face_approach_success = False
+        self.face_queue = deque(maxlen = 5)
 
 
     async def get_lidar_data(self, lower_angle, upper_angle):
@@ -645,7 +651,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             callback_feedback,
                             callback_finish,
                             close_to_position = False,
-                            d_dist = 0.05,
+                            d_dist = 0.03,
                             ):
         
         if not close_to_position:
