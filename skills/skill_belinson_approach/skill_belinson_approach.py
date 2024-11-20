@@ -257,7 +257,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
             self.log.warn(f'/'*50)
             await self.send_feedback(
                         {'skill_success' : None,
-                        'status_msg' : MSGS_DICT['APPROACH_FACE']['success']})
+                        'status_msg' : MSGS_DICT['DETECT_FACE']['success']})
             self.set_state('DETECT_FEET')
 
         elif self.face_detections:
