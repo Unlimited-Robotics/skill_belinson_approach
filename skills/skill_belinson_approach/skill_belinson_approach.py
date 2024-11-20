@@ -729,8 +729,8 @@ class SkillBelinsonApproach(RayaFSMSkill):
                         except Exception as e:
                             path_available = False
 
-            # If the whole arc was checked and path isnt available, raise error
-            raise RayaNoPathToGoal
+                # If the whole arc was checked and path isnt available, raise error
+                raise RayaNoPathToGoal
         
     # =============================== Callbacks =============================== #
 
