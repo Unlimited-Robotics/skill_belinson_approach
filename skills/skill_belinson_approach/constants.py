@@ -30,7 +30,7 @@ LIDAR_SCAN_PARAMS = {
 
 # Max state attempts
 MAX_DETECTION_ATTEMPTS = 2
-MAX_APPROACH_ATTEMPTS = 2
+MAX_APPROACH_ATTEMPTS = 1
 
 # Feedback dictionary
 MSGS_DICT = {
