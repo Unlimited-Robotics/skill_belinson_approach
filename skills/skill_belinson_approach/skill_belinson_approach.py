@@ -654,83 +654,83 @@ class SkillBelinsonApproach(RayaFSMSkill):
                             d_dist = 0.03,
                             ):
         
-        if not close_to_position:
-            await self.nav.navigate_to_position(
-                x = x,
-                y = y,
-                angle = angle,
-                pos_unit = pos_unit,
-                ang_unit = ang_unit,
-                wait = wait,
-                callback_feedback = callback_feedback,
-                callback_finish = callback_finish
-            )
+        # if not close_to_position:
+        await self.nav.navigate_to_position(
+            x = x,
+            y = y,
+            angle = angle,
+            pos_unit = pos_unit,
+            ang_unit = ang_unit,
+            wait = wait,
+            callback_feedback = callback_feedback,
+            callback_finish = callback_finish
+        )
         
         # Try to navigate close to the desired position
-        else:
-            # Send feedback
-            await self.send_feedback(
-                        {'skill_success' : None,
-                        'status_msg' : MSGS_DICT['RECOMPUTE_PATH']['success']})
+        # else:
+        #     # Send feedback
+        #     await self.send_feedback(
+        #                 {'skill_success' : None,
+        #                 'status_msg' : MSGS_DICT['RECOMPUTE_PATH']['success']})
 
-            # Set params
-            path_available = False
-            screen = UI_RECOMPUTING_PATH.copy()
-            grid = GRID.copy()
-            sorted_grid = sorted(
-                grid,
-                key = lambda point: abs(
-                    np.degrees(
-                        np.arctan2(point[0], point[1])) - np.degrees(angle)
-                        )
-                )
+        #     # Set params
+        #     path_available = False
+        #     screen = UI_RECOMPUTING_PATH.copy()
+        #     grid = GRID.copy()
+        #     sorted_grid = sorted(
+        #         grid,
+        #         key = lambda point: abs(
+        #             np.degrees(
+        #                 np.arctan2(point[0], point[1])) - np.degrees(angle)
+        #                 )
+        #         )
            
-            # Check path availability on a line in front of the patient
-            while not path_available:
-                for block in sorted_grid[:MAX_ALTERNATIVE_POINTS]:
-                    new_x = x + block[0]*MAX_RADIUS_IDX*d_dist
-                    new_y = y + block[1]*MAX_RADIUS_IDX*d_dist
+        #     # Check path availability on a line in front of the patient
+        #     while not path_available:
+        #         for block in sorted_grid[:MAX_ALTERNATIVE_POINTS]:
+        #             new_x = x + block[0]*MAX_RADIUS_IDX*d_dist
+        #             new_y = y + block[1]*MAX_RADIUS_IDX*d_dist
                     
-                    # Display computation
-                    await self.ui.display_animation(**screen)
+        #             # Display computation
+        #             await self.ui.display_animation(**screen)
 
-                    # Check availability of the new generated point
-                    path_available = await self.check_path_available(
-                                        x = new_x,
-                                        y = new_y,
-                                        angle = angle,
-                                        pos_unit = pos_unit,
-                                        ang_unit = ang_unit,
-                                        callback_feedback = callback_feedback,
-                                        callback_finish = callback_finish
-                                        )
+        #             # Check availability of the new generated point
+        #             path_available = await self.check_path_available(
+        #                                 x = new_x,
+        #                                 y = new_y,
+        #                                 angle = angle,
+        #                                 pos_unit = pos_unit,
+        #                                 ang_unit = ang_unit,
+        #                                 callback_feedback = callback_feedback,
+        #                                 callback_finish = callback_finish
+        #                                 )
                             
-                    # Try to navigate to the new found position
-                    if path_available:
+        #             # Try to navigate to the new found position
+        #             if path_available:
                         
-                        # Display result
-                        screen['title'] = f'מעדכן מסלול'
-                        screen['content'] = '/assets/UI_ARRIVING.gif'
-                        await self.ui.display_animation(**screen)
+        #                 # Display result
+        #                 screen['title'] = f'מעדכן מסלול'
+        #                 screen['content'] = '/assets/UI_ARRIVING.gif'
+        #                 await self.ui.display_animation(**screen)
 
-                        try:
-                            await self.nav.navigate_to_position(
-                            x = new_x,
-                            y = new_y,
-                            angle = angle,
-                            pos_unit = pos_unit,
-                            ang_unit = ang_unit,
-                            wait = wait,
-                            callback_feedback = callback_feedback,
-                            callback_finish = callback_finish
-                            )
-                            return
+        #                 try:
+        #                     await self.nav.navigate_to_position(
+        #                     x = new_x,
+        #                     y = new_y,
+        #                     angle = angle,
+        #                     pos_unit = pos_unit,
+        #                     ang_unit = ang_unit,
+        #                     wait = wait,
+        #                     callback_feedback = callback_feedback,
+        #                     callback_finish = callback_finish
+        #                     )
+        #                     return
 
-                        except Exception as e:
-                            path_available = False
+        #                 except Exception as e:
+        #                     path_available = False
 
-                # If the whole arc was checked and path isnt available, raise error
-                raise RayaNoPathToGoal
+        #         # If the whole arc was checked and path isnt available, raise error
+        #         raise RayaNoPathToGoal
         
     # =============================== Callbacks =============================== #
 
