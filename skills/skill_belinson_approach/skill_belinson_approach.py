@@ -399,6 +399,7 @@ class SkillBelinsonApproach(RayaFSMSkill):
         self.face_detections = []
         self.face_approach_success = False
         self.face_queue = deque(maxlen = 5)
+        self.nav_feedback = False
 
 
     async def get_lidar_data(self, lower_angle, upper_angle):
@@ -758,7 +759,36 @@ class SkillBelinsonApproach(RayaFSMSkill):
 
 
     def cb_nav_feedback(self, error, error_msg, distance_to_goal, speed):
-        pass
+        '''Create an async navigation callback'''
+        try:
+            self.app.create_task(name='nav feedback',
+                                afunc=self.async_cb_nav_feedback,
+                                error=error,
+                                error_msg=error_msg,
+                                distance_to_goal=distance_to_goal,
+                                speed=speed
+                                )
+        except Exception as e:
+            self.app.log.warn(f'Got error in cb_nav_feedback - {e}')
+        
+
+    async def async_cb_nav_feedback(self,
+                                    error,
+                                    error_msg,
+                                    distance_to_goal,
+                                    speed
+                                    ):
+        '''Navigation callback'''
+
+        # Print the current actions
+        if self.nav_feedback != error_msg:
+            self.log.info(f'Action: {error_msg} | ID: {error}')
+
+        # Actions for obstacle management
+        if error == OBSTACLE_DICT['Waiting obstacle to move']:
+            await self.nav.cancel_navigation()
+        
+        self.nav_feedback = error_msg
 
 
     def cb_nav_finish(self, error, error_msg):

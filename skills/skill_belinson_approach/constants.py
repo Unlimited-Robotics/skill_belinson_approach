@@ -30,7 +30,7 @@ LIDAR_SCAN_PARAMS = {
 
 # Max state attempts
 MAX_DETECTION_ATTEMPTS = 2
-MAX_APPROACH_ATTEMPTS = 1
+MAX_APPROACH_ATTEMPTS = 0
 
 # Feedback dictionary
 MSGS_DICT = {
@@ -83,6 +83,15 @@ UI_RECOMPUTING_PATH = {
     'theme' : UI_THEME_TYPE.WHITE,
     'custom_style' : CUSTOM_STYLE
 }
+
+# Status IDs pointing to obstacles detection
+OBSTACLE_DICT = {'Waiting obstacle to move' : 9,
+                 'Waiting' : 10,
+                 'Obstacle detected' : 167,
+                 'Moving linear' : 30,
+                 'Following path' : 241
+                 }
+
 
 # Error messages
 ERROR_NO_FACES_DETECTED = (1, 'No faces detected')
